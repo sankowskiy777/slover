@@ -1,31 +1,32 @@
+use std::convert::TryInto;
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::Read;
 use std::path::Path;
-use rusqlite::{params, Connection, Result};
-use bip39::{Mnemonic, Language};
+use rusqlite::{params, Connection};
+use bip39::{Mnemonic};
 use hex::encode;
 use ocl::{ProQue, Buffer};
 
-fn main() -> Result<()> {
-    let src = include_str!("../../cl/address.cl")
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let src = include_str!("../cl/address.cl")
         .to_string()
-        + include_str!("../../cl/common.cl")
-        + include_str!("../../cl/int_to_address.cl")
-        + include_str!("../../cl/just_address.cl")
-        + include_str!("../../cl/just_seed.cl")
-        + include_str!("../../cl/mnemonic_constants.cl")
-        + include_str!("../../cl/ripemd.cl")
-        + include_str!("../../cl/secp256k1.cl")
-        + include_str!("../../cl/secp256k1_common.cl")
-        + include_str!("../../cl/secp256k1_field.cl")
-        + include_str!("../../cl/secp256k1_group.cl")
-        + include_str!("../../cl/secp256k1_prec.cl")
-        + include_str!("../../cl/secp256k1_scalar.cl")
-        + include_str!("../../cl/sha2.cl")
-        + include_str!("../../cl/keccak.cl")
-        + include_str!("../../cl/pbkdf2.cl")
-        + include_str!("../../cl/Mersenne_Twister.cl")
-        + include_str!("../../cl/BIP32.cl");
+        + include_str!("../cl/common.cl")
+        + include_str!("../cl/int_to_address.cl")
+        + include_str!("../cl/just_address.cl")
+        + include_str!("../cl/just_seed.cl")
+        + include_str!("../cl/mnemonic_constants.cl")
+        + include_str!("../cl/ripemd.cl")
+        + include_str!("../cl/secp256k1.cl")
+        + include_str!("../cl/secp256k1_common.cl")
+        + include_str!("../cl/secp256k1_field.cl")
+        + include_str!("../cl/secp256k1_group.cl")
+        + include_str!("../cl/secp256k1_prec.cl")
+        + include_str!("../cl/secp256k1_scalar.cl")
+        + include_str!("../cl/sha2.cl")
+        + include_str!("../cl/keccak.cl")
+        + include_str!("../cl/pbkdf2.cl")
+        + include_str!("../cl/Mersenne_Twister.cl")
+        + include_str!("../cl/BIP32.cl");
 
     let pro_que = ProQue::builder().src(src).build().unwrap();
 
@@ -41,10 +42,10 @@ fn main() -> Result<()> {
             let entropy_seed: u32 = u32::from_le_bytes(chunk.try_into().unwrap());
             let entropy_buffer = generate_entropy(&pro_que, entropy_seed);
 
-            let mnemonic = Mnemonic::from_entropy(&entropy_buffer, Language::English).unwrap();
-            let phrase = mnemonic.phrase();
+            let mnemonic = Mnemonic::from_entropy(&entropy_buffer).unwrap();
+            let phrase = mnemonic.to_string();
 
-            let eth_address = generate_eth_address(&pro_que, phrase);
+            let eth_address = generate_eth_address(&pro_que, &phrase);
 
             let seed_hex = encode(chunk);
             conn.execute(
